@@ -1,0 +1,4 @@
+.DS_Store
+medical-viewer/node_modules/
+medical-viewer/.next/
+medical-viewer/tsconfig.tsbuildinfo
