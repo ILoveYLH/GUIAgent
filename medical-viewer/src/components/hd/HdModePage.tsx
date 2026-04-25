@@ -38,6 +38,10 @@ import {
   uploadLocalSeriesToShare,
 } from "@/lib/hdShareClient";
 import {
+  fetchMockStudyManifest,
+  mockStudyManifestToSeriesConfigs,
+} from "@/lib/mockStudyClient";
+import {
   getHdPseudoColorPreset,
   type HdPseudoColorId,
 } from "@/lib/hdPseudoColorPresets";
@@ -156,6 +160,7 @@ function HdModePageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const shareIdFromUrl = searchParams.get("share");
+  const studyIdFromUrl = searchParams.get("study");
   const panel = useMemo(
     () => parseHdPanelParam(searchParams.get("panel")),
     [searchParams],
@@ -207,6 +212,7 @@ function HdModePageInner() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [shareError, setShareError] = useState<string | null>(null);
   const [shareOpenError, setShareOpenError] = useState<string | null>(null);
+  const [mockStudyOpenError, setMockStudyOpenError] = useState<string | null>(null);
   const skipShareHydrateRef = useRef<string | null>(null);
 
   const handleSidebarTool = useCallback((id: SidebarToolId) => {
@@ -244,10 +250,15 @@ function HdModePageInner() {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   useEffect(() => {
+    if (studyIdFromUrl) return;
     loadHdSeriesConfig().then((list) => {
-      setSeriesList(list);
+      setSeriesList((prev) => {
+        if (prev.length === 0) return list;
+        const existing = new Set(prev.map((s) => s.id));
+        return [...prev, ...list.filter((s) => !existing.has(s.id))];
+      });
     });
-  }, []);
+  }, [studyIdFromUrl]);
 
   useEffect(() => {
     setShareOpenError(null);
@@ -283,6 +294,58 @@ function HdModePageInner() {
       cancelled = true;
     };
   }, [shareIdFromUrl, origin]);
+
+  useEffect(() => {
+    setMockStudyOpenError(null);
+    if (!studyIdFromUrl || !origin) return;
+    if (!/^(?:\d+\.)+\d+$/.test(studyIdFromUrl)) {
+      setMockStudyOpenError("链接中的检查 ID 格式无效");
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const manifest = await fetchMockStudyManifest(studyIdFromUrl);
+        if (cancelled) return;
+        const extra = mockStudyManifestToSeriesConfigs(
+          studyIdFromUrl,
+          manifest,
+          origin,
+        );
+        const first = extra[0];
+        if (!first) {
+          throw new Error("模拟检查没有可用影像");
+        }
+        const firstImageIds = getSeriesImageIds(origin, first);
+        if (firstImageIds.length === 0) {
+          throw new Error("模拟检查没有可用影像");
+        }
+
+        setSeriesList(extra);
+        setActiveCellIdx(0);
+        setViewportConfigs((prev) => {
+          const next = prev.length > 0 ? [...prev] : [buildEmptyConfig()];
+          next[0] = {
+            ...buildEmptyConfig(),
+            seriesIdx: 0,
+            imageIds: firstImageIds,
+          };
+          return next;
+        });
+      } catch (e) {
+        if (!cancelled) {
+          setMockStudyOpenError(
+            e instanceof Error ? e.message : "无法加载模拟检查",
+          );
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [studyIdFromUrl, origin]);
 
   useEffect(() => {
     if (seriesList.length === 0) return;
@@ -669,7 +732,7 @@ function HdModePageInner() {
                 shareMessage={shareMessage}
                 shareUrl={shareUrl}
                 shareError={shareError}
-                shareOpenError={shareOpenError}
+                shareOpenError={shareOpenError ?? mockStudyOpenError}
                 onCreateShareLink={handleCreateShareLink}
               />
             </CollapsibleSection>

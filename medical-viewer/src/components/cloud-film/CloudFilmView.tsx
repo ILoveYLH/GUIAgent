@@ -2,6 +2,66 @@ import Link from "next/link";
 import FilmViewer from "@/components/film/FilmViewer";
 import styles from "@/app/cloud-film/cloud-film.module.css";
 
+export type CloudFilmReportData = {
+  watermarkText: string;
+  patientMobile: string;
+  patientDesktop: string;
+  birthDate: string;
+  imageHref: string;
+  examTitle: string;
+  examDateTime: string;
+  hospital: string;
+  modality: string;
+  medicalTechNo: string;
+  accessionNumber: string;
+  examTimeShort: string;
+  reviewTime: string;
+  examItem: string;
+  findings: string;
+  impression: string;
+  basicInfo: { label: string; value: string }[];
+  examInfo: { label: string; value: string }[];
+  showEmbeddedFilm?: boolean;
+};
+
+const DEFAULT_REPORT_DATA: CloudFilmReportData = {
+  watermarkText: "DEMO 示例患者",
+  patientMobile: "张** · 女 · 60 岁",
+  patientDesktop: "张** / 女 / 60 岁 / 19**-**-**",
+  birthDate: "19**-**-**",
+  imageHref: "/hd",
+  examTitle: "肺部小结节薄层平扫",
+  examDateTime: "2025-10-28 14:31:38",
+  hospital: "****医院",
+  modality: "CT",
+  medicalTechNo: "ZS********",
+  accessionNumber: "ZS**********",
+  examTimeShort: "2025/10/28 14:31",
+  reviewTime: "2025-10-29 09:08:21",
+  examItem: "肺部小结节薄层平扫",
+  findings:
+    "右肺下叶前基底段可见结节灶（im38），大小18*15mm，边缘光滑锐利，两侧膈肌下可见微小结节影（im23等），直径约3-4，两肺少许纤维点条索影，所见各支气管壁通畅，纵膈小淋巴结，胸腔内无积液，甲状腺右前叶低密度结节。",
+  impression:
+    "右肺下叶前基底段结节，较24-04-18片增大；两肺少许慢性炎症及陈旧灶；甲状腺右前叶结节，建议超声检查。",
+  basicInfo: [
+    { label: "申请科室", value: "呼吸科互联网门诊" },
+    { label: "申请医生", value: "王晓丹" },
+    { label: "病人类型", value: "门诊" },
+    { label: "门诊号", value: "************" },
+    { label: "床号", value: "—" },
+  ],
+  examInfo: [
+    { label: "检查号", value: "ZS**********" },
+    { label: "检查类型", value: "CT" },
+    { label: "检查时间", value: "2025-10-28 14:31:38" },
+    { label: "检查医生", value: "杨国奎" },
+    { label: "报告时间", value: "2025-10-28 19:03:11" },
+    { label: "审核医生", value: "王维理" },
+    { label: "审核时间", value: "2025-10-29 09:08:21" },
+  ],
+  showEmbeddedFilm: true,
+};
+
 function IconClose() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -87,7 +147,11 @@ function FieldGrid({
   );
 }
 
-export default function CloudFilmView() {
+export default function CloudFilmView({
+  report = DEFAULT_REPORT_DATA,
+}: {
+  report?: CloudFilmReportData;
+}) {
   return (
     <div className={styles.page}>
       <div className={styles.watermark} aria-hidden>
@@ -107,7 +171,7 @@ export default function CloudFilmView() {
                 fontSize="15"
                 fontWeight="500"
               >
-                DEMO 示例患者
+                {report.watermarkText}
               </text>
             </pattern>
           </defs>
@@ -158,18 +222,18 @@ export default function CloudFilmView() {
             <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0 flex-1">
                 <h1 className="text-[20px] font-bold tracking-tight text-[#0f2942] lg:text-[22px]">
-                  <span className="lg:hidden">张** · 女 · 60 岁</span>
+                  <span className="lg:hidden">{report.patientMobile}</span>
                   <span className="hidden lg:inline">
-                    张** / 女 / 60 岁 / 19**-**-**
+                    {report.patientDesktop}
                   </span>
                 </h1>
                 <p className="mt-2 text-[14px] text-[#3d5a73] lg:hidden">
-                  出生日期：19**-**-**
+                  出生日期：{report.birthDate}
                 </p>
               </div>
               <div className="flex shrink-0 items-center justify-between gap-4 lg:justify-end">
                 <Link
-                  href="/hd"
+                  href={report.imageHref}
                   scroll={false}
                   className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#1d4ed8] hover:underline"
                 >
@@ -206,10 +270,10 @@ export default function CloudFilmView() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-[14px] font-semibold leading-snug text-[#0f2942]">
-                        肺部小结节薄层平扫
+                        {report.examTitle}
                       </p>
                       <p className="mt-1 text-[12px] text-[#64748b]">
-                        2025-10-28 14:31:38
+                        {report.examDateTime}
                       </p>
                     </div>
                   </div>
@@ -223,35 +287,35 @@ export default function CloudFilmView() {
                       <div className="flex items-center gap-2">
                         <HospitalLogo />
                         <span className="text-[15px] font-semibold text-[#1e3a5f]">
-                          ****医院
+                          {report.hospital}
                         </span>
                       </div>
 
                       <div className="mt-4 flex flex-wrap items-center gap-2">
                         <span className="rounded-md bg-[#ede9fe] px-2 py-0.5 text-[12px] font-semibold text-[#6d28d9]">
-                          CT
+                          {report.modality}
                         </span>
                         <h2 className="text-[17px] font-bold leading-snug text-[#0f2942]">
-                          肺部小结节薄层平扫
+                          {report.examTitle}
                         </h2>
                       </div>
                     </div>
                     <div className="mt-3 space-y-1 text-[13px] text-[#64748b] lg:mt-0 lg:text-right">
-                      <p>医技号：ZS********</p>
-                      <p>检查号：ZS**********</p>
-                      <p>检查时间：2025/10/28 14:31</p>
+                      <p>医技号：{report.medicalTechNo}</p>
+                      <p>检查号：{report.accessionNumber}</p>
+                      <p>检查时间：{report.examTimeShort}</p>
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-[13px] text-[#64748b]">
-                      审核时间：2025-10-29 09:08:21
+                      审核时间：{report.reviewTime}
                     </p>
                     <Link
-                      href="/film"
+                      href={report.imageHref}
                       className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-[14px] font-medium text-[#64748b] hover:bg-slate-50 lg:hidden"
                     >
-                      全屏胶片
+                      全屏影像
                     </Link>
                   </div>
 
@@ -262,73 +326,57 @@ export default function CloudFilmView() {
                       </h3>
                       <div className="mb-4">
                         <div className="text-[13px] font-medium text-[#2563eb]">检查项目</div>
-                        <p className="mt-1 text-[14px] text-[#334155]">肺部小结节薄层平扫</p>
+                        <p className="mt-1 text-[14px] text-[#334155]">{report.examItem}</p>
                       </div>
                       <h4 className="mb-2 text-[14px] font-semibold text-[#5b7a94]">检查所见</h4>
                       <div className="text-[14px] leading-[1.75] text-[#334155]">
-                        <p>
-                          右肺下叶前基底段可见结节灶（im38），大小18*15mm，边缘光滑锐利，两侧膈肌下可见微小结节影（im23等），直径约3-4，两肺少许纤维点条索影，所见各支气管壁通畅，纵膈小淋巴结，胸腔内无积液，甲状腺右前叶低密度结节。
-                        </p>
+                        <p>{report.findings}</p>
                       </div>
                     </section>
 
                     <section>
                       <h4 className="mb-2 text-[14px] font-semibold text-[#5b7a94]">检查提示</h4>
                       <div className="text-[14px] leading-[1.75] text-[#334155]">
-                        <p>
-                          右肺下叶前基底段结节，较24-04-18片增大；两肺少许慢性炎症及陈旧灶；甲状腺右前叶结节，建议超声检查。
-                        </p>
+                        <p>{report.impression}</p>
                       </div>
                     </section>
 
                     <section className="border-t border-slate-100 pt-5">
                       <h3 className="mb-3 text-[15px] font-semibold text-[#2563eb]">基本信息</h3>
                       <FieldGrid
-                        items={[
-                          { label: "申请科室", value: "呼吸科互联网门诊" },
-                          { label: "申请医生", value: "王晓丹" },
-                          { label: "病人类型", value: "门诊" },
-                          { label: "门诊号", value: "************" },
-                          { label: "床号", value: "—" },
-                        ]}
+                        items={report.basicInfo}
                       />
                     </section>
 
                     <section className="border-t border-slate-100 pt-5">
                       <h3 className="mb-3 text-[15px] font-semibold text-[#2563eb]">检查信息</h3>
                       <FieldGrid
-                        items={[
-                          { label: "检查号", value: "ZS**********" },
-                          { label: "检查类型", value: "CT" },
-                          { label: "检查时间", value: "2025-10-28 14:31:38" },
-                          { label: "检查医生", value: "杨国奎" },
-                          { label: "报告时间", value: "2025-10-28 19:03:11" },
-                          { label: "审核医生", value: "王维理" },
-                          { label: "审核时间", value: "2025-10-29 09:08:21" },
-                        ]}
+                        items={report.examInfo}
                       />
                     </section>
                   </div>
                 </article>
 
                 {/* 原 /film 页能力：嵌入页面底部 */}
-                <section
-                  id="cloud-film-viewer"
-                  className="scroll-mt-4 overflow-hidden rounded-2xl border border-slate-200/90 bg-[#0a0c0f] shadow-[0_8px_32px_rgba(15,41,66,0.12)]"
-                >
-                  <div className="border-b border-white/10 bg-[#0c0f14] px-4 py-3">
-                    <h2 className="text-[15px] font-semibold text-sky-100">查看胶片</h2>
-                    <p className="mt-0.5 text-[12px] text-slate-400">
-                      滚轮翻页、拖拽或下方控件浏览序列。
-                      <Link href="/film" className="ml-1 text-sky-300 underline-offset-2 hover:underline">
-                        全屏胶片页
-                      </Link>
-                    </p>
-                  </div>
-                  <div className="p-2 sm:p-3">
-                    <FilmViewer variant="embedded" />
-                  </div>
-                </section>
+                {report.showEmbeddedFilm !== false && (
+                  <section
+                    id="cloud-film-viewer"
+                    className="scroll-mt-4 overflow-hidden rounded-2xl border border-slate-200/90 bg-[#0a0c0f] shadow-[0_8px_32px_rgba(15,41,66,0.12)]"
+                  >
+                    <div className="border-b border-white/10 bg-[#0c0f14] px-4 py-3">
+                      <h2 className="text-[15px] font-semibold text-sky-100">查看胶片</h2>
+                      <p className="mt-0.5 text-[12px] text-slate-400">
+                        滚轮翻页、拖拽或下方控件浏览序列。
+                        <Link href="/film" className="ml-1 text-sky-300 underline-offset-2 hover:underline">
+                          全屏胶片页
+                        </Link>
+                      </p>
+                    </div>
+                    <div className="p-2 sm:p-3">
+                      <FilmViewer variant="embedded" />
+                    </div>
+                  </section>
+                )}
 
                 <p className="text-center text-[12px] leading-relaxed text-[#64748b] lg:text-left">
                   云胶片仅供临床医生参考，若与您拿到的报告影像结果不符，请以纸质报告为准。

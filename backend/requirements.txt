@@ -1,0 +1,25 @@
+# Web Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+python-multipart>=0.0.18
+sse-starlette>=2.2.0
+
+# Auth
+pyjwt>=2.10.0
+
+# DICOM
+pydicom>=3.0.0
+numpy>=2.0.0
+Pillow>=11.0.0
+
+# GUI Agent
+playwright>=1.50.0
+
+# LLM
+dashscope>=1.22.0
+# openai>=1.60.0  # Qwen OpenAI-compatible API (alternative)
+
+# Utilities
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+httpx>=0.28.0
