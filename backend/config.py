@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     invite_codes: list[str] = ["test-001", "test-002", "demo-2026"]
 
     # ---------- JWT ----------
-    jwt_secret: str = "change-me-in-production"
+    jwt_secret: str = "change-me-in-production-use-env-secret"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24  # 24h
 
@@ -32,7 +32,8 @@ class Settings(BaseSettings):
     batch_dicom_dir: str = "../medical-viewer/batch_dicom_data"
 
     # ---------- 一扫多查模型 ----------
-    scan_model_url: str = ""  # 课题组模型 API 地址
+    model_api_url: str = ""  # 课题组模型 API 地址
+    scan_model_url: str = ""  # 兼容旧命名，后续可移除
     scan_model_timeout: int = 120  # 秒
 
     # ---------- Qwen LLM ----------
@@ -48,3 +49,9 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+INVITE_CODES = settings.invite_codes
+VIEWER_BASE_URL = settings.viewer_base_url
+MODEL_API_URL = settings.model_api_url or settings.scan_model_url
+QWEN_API_KEY = settings.qwen_api_key
+ADAPTER_TYPE = settings.adapter_type

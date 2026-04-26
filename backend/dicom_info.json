@@ -1,0 +1,737 @@
+[
+  {
+    "tag": "(0008, 0005)",
+    "description": "SpecificCharacterSet",
+    "value": "ISO_IR 192"
+  },
+  {
+    "tag": "(0008, 0008)",
+    "description": "ImageType",
+    "value": "ORIGINAL,PRIMARY,AXIAL,HELICAL"
+  },
+  {
+    "tag": "(0008, 0012)",
+    "description": "InstanceCreationDate",
+    "value": "20230619"
+  },
+  {
+    "tag": "(0008, 0013)",
+    "description": "InstanceCreationTime",
+    "value": "152113"
+  },
+  {
+    "tag": "(0008, 0016)",
+    "description": "SOPClassUID",
+    "value": "1.2.840.10008.5.1.4.1.1.2"
+  },
+  {
+    "tag": "(0008, 0018)",
+    "description": "SOPInstanceUID",
+    "value": "1.2.156.112605.189250953901595.230619072112.4.14648.19850"
+  },
+  {
+    "tag": "(0008, 0020)",
+    "description": "StudyDate",
+    "value": "20230619"
+  },
+  {
+    "tag": "(0008, 0021)",
+    "description": "SeriesDate",
+    "value": "20230619"
+  },
+  {
+    "tag": "(0008, 0022)",
+    "description": "AcquisitionDate",
+    "value": "20230619"
+  },
+  {
+    "tag": "(0008, 0023)",
+    "description": "ContentDate",
+    "value": "20230619"
+  },
+  {
+    "tag": "(0008, 002A)",
+    "description": "AcquisitionDateTime",
+    "value": "20230619152104.091"
+  },
+  {
+    "tag": "(0008, 0030)",
+    "description": "StudyTime",
+    "value": "152020.000000"
+  },
+  {
+    "tag": "(0008, 0031)",
+    "description": "SeriesTime",
+    "value": "152043.000000"
+  },
+  {
+    "tag": "(0008, 0032)",
+    "description": "AcquisitionTime",
+    "value": "152104.091"
+  },
+  {
+    "tag": "(0008, 0033)",
+    "description": "ContentTime",
+    "value": "152112.989433"
+  },
+  {
+    "tag": "(0008, 0050)",
+    "description": "AccessionNumber",
+    "value": "SZ123456"
+  },
+  {
+    "tag": "(0008, 0060)",
+    "description": "Modality",
+    "value": "CT"
+  },
+  {
+    "tag": "(0008, 0070)",
+    "description": "Manufacturer",
+    "value": "UIH"
+  },
+  {
+    "tag": "(0008, 0080)",
+    "description": "InstitutionName",
+    "value": "Ano"
+  },
+  {
+    "tag": "(0008, 0081)",
+    "description": "InstitutionAddress",
+    "value": ""
+  },
+  {
+    "tag": "(0008, 0090)",
+    "description": "ReferringPhysicianName",
+    "value": "Ano"
+  },
+  {
+    "tag": "(0008, 1010)",
+    "description": "StationName",
+    "value": ""
+  },
+  {
+    "tag": "(0008, 1030)",
+    "description": "StudyDescription",
+    "value": ""
+  },
+  {
+    "tag": "(0008, 103E)",
+    "description": "SeriesDescription",
+    "value": "5.0 x 5.0"
+  },
+  {
+    "tag": "(0008, 1040)",
+    "description": "InstitutionalDepartmentName",
+    "value": ""
+  },
+  {
+    "tag": "(0008, 1050)",
+    "description": "PerformingPhysicianName",
+    "value": ""
+  },
+  {
+    "tag": "(0008, 1070)",
+    "description": "OperatorsName",
+    "value": ""
+  },
+  {
+    "tag": "(0008, 1090)",
+    "description": "ManufacturerModelName",
+    "value": "uCT 790"
+  },
+  {
+    "tag": "(0008, 1140)",
+    "description": "ReferencedImageSequence",
+    "value": "[(0008,1150) Referenced SOP Class UID            UI: CT Image Storage\n(0008,1155) Referenced SOP Instance UID         UI: 1.2.156.112605.189250953901595.230619072029.4.6000.10165]"
+  },
+  {
+    "tag": "(0010, 0010)",
+    "description": "PatientName",
+    "value": "Ano"
+  },
+  {
+    "tag": "(0010, 0020)",
+    "description": "PatientID",
+    "value": "Ano"
+  },
+  {
+    "tag": "(0010, 0030)",
+    "description": "PatientBirthDate",
+    "value": "19850809"
+  },
+  {
+    "tag": "(0010, 0040)",
+    "description": "PatientSex",
+    "value": "M"
+  },
+  {
+    "tag": "(0010, 1010)",
+    "description": "PatientAge",
+    "value": "037Y"
+  },
+  {
+    "tag": "(0010, 1020)",
+    "description": "PatientSize",
+    "value": ""
+  },
+  {
+    "tag": "(0010, 1030)",
+    "description": "PatientWeight",
+    "value": ""
+  },
+  {
+    "tag": "(0010, 2160)",
+    "description": "EthnicGroup",
+    "value": ""
+  },
+  {
+    "tag": "(0018, 0010)",
+    "description": "ContrastBolusAgent",
+    "value": ""
+  },
+  {
+    "tag": "(0018, 0015)",
+    "description": "BodyPartExamined",
+    "value": "CHEST"
+  },
+  {
+    "tag": "(0018, 0022)",
+    "description": "ScanOptions",
+    "value": "HELICAL"
+  },
+  {
+    "tag": "(0018, 0050)",
+    "description": "SliceThickness",
+    "value": "5"
+  },
+  {
+    "tag": "(0018, 0060)",
+    "description": "KVP",
+    "value": "120"
+  },
+  {
+    "tag": "(0018, 0088)",
+    "description": "SpacingBetweenSlices",
+    "value": "5"
+  },
+  {
+    "tag": "(0018, 0090)",
+    "description": "DataCollectionDiameter",
+    "value": "500"
+  },
+  {
+    "tag": "(0018, 1000)",
+    "description": "DeviceSerialNumber",
+    "value": "690003"
+  },
+  {
+    "tag": "(0018, 1020)",
+    "description": "SoftwareVersions",
+    "value": "R001"
+  },
+  {
+    "tag": "(0018, 1030)",
+    "description": "ProtocolName",
+    "value": "Chest Helical"
+  },
+  {
+    "tag": "(0018, 1100)",
+    "description": "ReconstructionDiameter",
+    "value": "350"
+  },
+  {
+    "tag": "(0018, 1110)",
+    "description": "DistanceSourceToDetector",
+    "value": "1060.2"
+  },
+  {
+    "tag": "(0018, 1111)",
+    "description": "DistanceSourceToPatient",
+    "value": "570"
+  },
+  {
+    "tag": "(0018, 1120)",
+    "description": "GantryDetectorTilt",
+    "value": ""
+  },
+  {
+    "tag": "(0018, 1130)",
+    "description": "TableHeight",
+    "value": "129"
+  },
+  {
+    "tag": "(0018, 1140)",
+    "description": "RotationDirection",
+    "value": "CW"
+  },
+  {
+    "tag": "(0018, 1150)",
+    "description": "ExposureTime",
+    "value": "459"
+  },
+  {
+    "tag": "(0018, 1151)",
+    "description": "XRayTubeCurrent",
+    "value": "309"
+  },
+  {
+    "tag": "(0018, 1152)",
+    "description": "Exposure",
+    "value": "142"
+  },
+  {
+    "tag": "(0018, 1160)",
+    "description": "FilterType",
+    "value": "Default"
+  },
+  {
+    "tag": "(0018, 1170)",
+    "description": "GeneratorPower",
+    "value": "37144"
+  },
+  {
+    "tag": "(0018, 1190)",
+    "description": "FocalSpots",
+    "value": "0"
+  },
+  {
+    "tag": "(0018, 1210)",
+    "description": "ConvolutionKernel",
+    "value": "B_SHARP_C"
+  },
+  {
+    "tag": "(0018, 1302)",
+    "description": "ScanLength",
+    "value": "365"
+  },
+  {
+    "tag": "(0018, 5100)",
+    "description": "PatientPosition",
+    "value": "HFS"
+  },
+  {
+    "tag": "(0018, 9305)",
+    "description": "RevolutionTime",
+    "value": "0.5"
+  },
+  {
+    "tag": "(0018, 9306)",
+    "description": "SingleCollimationWidth",
+    "value": "0.5"
+  },
+  {
+    "tag": "(0018, 9307)",
+    "description": "TotalCollimationWidth",
+    "value": "40.0"
+  },
+  {
+    "tag": "(0018, 9310)",
+    "description": "TableFeedPerRotation",
+    "value": "1.0875"
+  },
+  {
+    "tag": "(0018, 9311)",
+    "description": "SpiralPitchFactor",
+    "value": "1.0875"
+  },
+  {
+    "tag": "(0018, 9323)",
+    "description": "ExposureModulationType",
+    "value": "NONE"
+  },
+  {
+    "tag": "(0020, 000D)",
+    "description": "StudyInstanceUID",
+    "value": "1.2.820.908348485248575649555753"
+  },
+  {
+    "tag": "(0020, 000E)",
+    "description": "SeriesInstanceUID",
+    "value": "1.2.156.112605.189250953901595.230619072020.3.5480.43646"
+  },
+  {
+    "tag": "(0020, 0010)",
+    "description": "StudyID",
+    "value": "278298"
+  },
+  {
+    "tag": "(0020, 0011)",
+    "description": "SeriesNumber",
+    "value": "201"
+  },
+  {
+    "tag": "(0020, 0012)",
+    "description": "AcquisitionNumber",
+    "value": "2"
+  },
+  {
+    "tag": "(0020, 0013)",
+    "description": "InstanceNumber",
+    "value": "1"
+  },
+  {
+    "tag": "(0020, 0032)",
+    "description": "ImagePositionPatient",
+    "value": "-168.234238,-174.658203,154.536377"
+  },
+  {
+    "tag": "(0020, 0037)",
+    "description": "ImageOrientationPatient",
+    "value": "1,0,0,0,1,0"
+  },
+  {
+    "tag": "(0020, 0052)",
+    "description": "FrameOfReferenceUID",
+    "value": "1.2.156.112605.189250953901595.230619072020.9.5480.73145"
+  },
+  {
+    "tag": "(0020, 1002)",
+    "description": "ImagesInAcquisition",
+    "value": "74"
+  },
+  {
+    "tag": "(0020, 1040)",
+    "description": "PositionReferenceIndicator",
+    "value": ""
+  },
+  {
+    "tag": "(0020, 1041)",
+    "description": "SliceLocation",
+    "value": "154.536377"
+  },
+  {
+    "tag": "(0028, 0002)",
+    "description": "SamplesPerPixel",
+    "value": "1"
+  },
+  {
+    "tag": "(0028, 0004)",
+    "description": "PhotometricInterpretation",
+    "value": "MONOCHROME2"
+  },
+  {
+    "tag": "(0028, 0010)",
+    "description": "Rows",
+    "value": "512"
+  },
+  {
+    "tag": "(0028, 0011)",
+    "description": "Columns",
+    "value": "512"
+  },
+  {
+    "tag": "(0028, 0030)",
+    "description": "PixelSpacing",
+    "value": "0.68359375,0.68359375"
+  },
+  {
+    "tag": "(0028, 0100)",
+    "description": "BitsAllocated",
+    "value": "16"
+  },
+  {
+    "tag": "(0028, 0101)",
+    "description": "BitsStored",
+    "value": "15"
+  },
+  {
+    "tag": "(0028, 0102)",
+    "description": "HighBit",
+    "value": "14"
+  },
+  {
+    "tag": "(0028, 0103)",
+    "description": "PixelRepresentation",
+    "value": "0"
+  },
+  {
+    "tag": "(0028, 1050)",
+    "description": "WindowCenter",
+    "value": "-600"
+  },
+  {
+    "tag": "(0028, 1051)",
+    "description": "WindowWidth",
+    "value": "1000"
+  },
+  {
+    "tag": "(0028, 1052)",
+    "description": "RescaleIntercept",
+    "value": "-1024"
+  },
+  {
+    "tag": "(0028, 1053)",
+    "description": "RescaleSlope",
+    "value": "1"
+  },
+  {
+    "tag": "(0028, 1054)",
+    "description": "RescaleType",
+    "value": "HU"
+  },
+  {
+    "tag": "(0032, 1032)",
+    "description": "RequestingPhysician",
+    "value": ""
+  },
+  {
+    "tag": "(0032, 1060)",
+    "description": "RequestedProcedureDescription",
+    "value": "Chest Helical"
+  },
+  {
+    "tag": "(0040, 0244)",
+    "description": "PerformedProcedureStepStartDate",
+    "value": ""
+  },
+  {
+    "tag": "(0040, 0245)",
+    "description": "PerformedProcedureStepStartTime",
+    "value": ""
+  },
+  {
+    "tag": "(0040, 0253)",
+    "description": "PerformedProcedureStepID",
+    "value": ""
+  },
+  {
+    "tag": "(0040, 0254)",
+    "description": "PerformedProcedureStepDescription",
+    "value": ""
+  },
+  {
+    "tag": "(0061, 0010)",
+    "description": "Private Creator",
+    "value": "PatientOriginalName"
+  },
+  {
+    "tag": "(0061, 1001)",
+    "description": "Private tag data",
+    "value": "Zhuang^ Xujun"
+  },
+  {
+    "tag": "(0063, 0030)",
+    "description": "Private Creator",
+    "value": "UIH_CT_DOM"
+  },
+  {
+    "tag": "(0063, 0031)",
+    "description": "Private Creator",
+    "value": "UIH_CT_Ehance"
+  },
+  {
+    "tag": "(0063, 0050)",
+    "description": "Private Creator",
+    "value": "UIH_CT_MISC"
+  },
+  {
+    "tag": "(0063, 0051)",
+    "description": "Private Creator",
+    "value": "UIH_CT_ECGRESP_Param"
+  },
+  {
+    "tag": "(0063, 3078)",
+    "description": "Private tag data",
+    "value": "25.0"
+  },
+  {
+    "tag": "(0063, 3161)",
+    "description": "Private tag data",
+    "value": "2.5"
+  },
+  {
+    "tag": "(0063, 4224)",
+    "description": "Private tag data",
+    "value": "0.5,0.5"
+  },
+  {
+    "tag": "(0063, 4225)",
+    "description": "Private tag data",
+    "value": "2"
+  },
+  {
+    "tag": "(0063, 4226)",
+    "description": "Private tag data",
+    "value": "256"
+  },
+  {
+    "tag": "(0063, 4227)",
+    "description": "Private tag data",
+    "value": "0.75"
+  },
+  {
+    "tag": "(0063, 4228)",
+    "description": "Private tag data",
+    "value": "0.949999988079071"
+  },
+  {
+    "tag": "(0063, 4229)",
+    "description": "Private tag data",
+    "value": "-7.0"
+  },
+  {
+    "tag": "(0063, 4599)",
+    "description": "Private tag data",
+    "value": "0"
+  },
+  {
+    "tag": "(0063, 4607)",
+    "description": "Private tag data",
+    "value": "344"
+  },
+  {
+    "tag": "(0063, 4608)",
+    "description": "Private tag data",
+    "value": "1"
+  },
+  {
+    "tag": "(0063, 4609)",
+    "description": "Private tag data",
+    "value": "355"
+  },
+  {
+    "tag": "(0063, 4610)",
+    "description": "Private tag data",
+    "value": "16"
+  },
+  {
+    "tag": "(0063, 5000)",
+    "description": "Private tag data",
+    "value": "R001.10.0.683724.Re.1000"
+  },
+  {
+    "tag": "(0063, 5001)",
+    "description": "Private tag data",
+    "value": "1.2.156.112605.189250953901595.230619072008.1.9004.22271"
+  },
+  {
+    "tag": "(0063, 5027)",
+    "description": "Private tag data",
+    "value": "2"
+  },
+  {
+    "tag": "(0063, 5029)",
+    "description": "Private tag data",
+    "value": "1.2.156.112605.189250953901595.230619072020.9.5480.63646"
+  },
+  {
+    "tag": "(0063, 5031)",
+    "description": "Private tag data",
+    "value": "11001"
+  },
+  {
+    "tag": "(0063, 5035)",
+    "description": "Private tag data",
+    "value": "1508.385009765625"
+  },
+  {
+    "tag": "(0063, 5036)",
+    "description": "Private tag data",
+    "value": "1138.385009765625"
+  },
+  {
+    "tag": "(0063, 5040)",
+    "description": "Private tag data",
+    "value": "6.42396021"
+  },
+  {
+    "tag": "(0063, 5041)",
+    "description": "Private tag data",
+    "value": "0"
+  },
+  {
+    "tag": "(0063, 5042)",
+    "description": "Private tag data",
+    "value": "3396"
+  },
+  {
+    "tag": "(0063, 5043)",
+    "description": "Private tag data",
+    "value": "0"
+  },
+  {
+    "tag": "(0063, 5049)",
+    "description": "Private tag data",
+    "value": "CHEST"
+  },
+  {
+    "tag": "(0063, 5053)",
+    "description": "Private tag data",
+    "value": "1"
+  },
+  {
+    "tag": "(0063, 5054)",
+    "description": "Private tag data",
+    "value": "2.0"
+  },
+  {
+    "tag": "(0063, 5055)",
+    "description": "Private tag data",
+    "value": "4"
+  },
+  {
+    "tag": "(0063, 5056)",
+    "description": "Private tag data",
+    "value": "96"
+  },
+  {
+    "tag": "(0063, 5057)",
+    "description": "Private tag data",
+    "value": "500.0"
+  },
+  {
+    "tag": "(0063, 5058)",
+    "description": "Private tag data",
+    "value": "3.0"
+  },
+  {
+    "tag": "(0063, 5059)",
+    "description": "Private tag data",
+    "value": "50.0"
+  },
+  {
+    "tag": "(0063, 5062)",
+    "description": "Private tag data",
+    "value": "-0.33329999446868896,0.666700005531311,0.33329999446868896,0.666700005531311,-0.33329999446868896"
+  },
+  {
+    "tag": "(0063, 5064)",
+    "description": "Private tag data",
+    "value": "40.0"
+  },
+  {
+    "tag": "(0063, 5078)",
+    "description": "Private tag data",
+    "value": "0"
+  },
+  {
+    "tag": "(0063, 5084)",
+    "description": "Private tag data",
+    "value": "0"
+  },
+  {
+    "tag": "(0063, 5086)",
+    "description": "Private tag data",
+    "value": "0"
+  },
+  {
+    "tag": "(0063, 5098)",
+    "description": "Private tag data",
+    "value": "5.0"
+  },
+  {
+    "tag": "(0063, 5110)",
+    "description": "Private tag data",
+    "value": "1"
+  },
+  {
+    "tag": "(0070, 0041)",
+    "description": "ImageHorizontalFlip",
+    "value": "N"
+  },
+  {
+    "tag": "(0070, 0042)",
+    "description": "ImageRotation",
+    "value": "0"
+  }
+]

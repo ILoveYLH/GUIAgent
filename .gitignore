@@ -2,3 +2,7 @@
 medical-viewer/node_modules/
 medical-viewer/.next/
 medical-viewer/tsconfig.tsbuildinfo
+backend/.env
+backend/output/
+__pycache__/
+*.py[cod]
