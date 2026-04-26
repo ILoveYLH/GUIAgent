@@ -58,7 +58,7 @@ type StudyFileList = {
   paths: string[];
 };
 
-const STUDY_ID_RE = /^(?:\d+\.)+\d+$/;
+const STUDY_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,255}$/;
 
 function str(ds: dicomParser.DataSet, tag: string): string {
   try {

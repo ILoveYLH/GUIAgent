@@ -275,6 +275,10 @@ button {
   animation: rise-in 220ms ease both;
 }
 
+.message.wide {
+  grid-template-columns: 38px minmax(0, 1080px);
+}
+
 .message.user {
   grid-template-columns: minmax(0, 780px) 38px;
 }
@@ -332,6 +336,12 @@ button {
   font-size: 18px;
 }
 
+.markdown h4 {
+  margin: 12px 0 6px;
+  color: #dffcff;
+  font-size: 15px;
+}
+
 .markdown ul {
   margin: 8px 0;
   padding-left: 22px;
@@ -343,6 +353,195 @@ button {
   border-left: 3px solid #50dae9;
   color: #9ec5d0;
   background: rgba(80, 218, 233, 0.08);
+}
+
+.markdown table {
+  width: 100%;
+  margin: 12px 0;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.markdown th,
+.markdown td {
+  padding: 8px 10px;
+  border: 1px solid rgba(143, 219, 230, 0.18);
+  text-align: left;
+}
+
+.markdown th {
+  color: #e9fbff;
+  background: rgba(80, 218, 233, 0.1);
+}
+
+.findings-panel {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0 18px;
+  padding: 12px;
+  border: 1px solid rgba(143, 219, 230, 0.16);
+  border-radius: 8px;
+  background: rgba(5, 14, 24, 0.5);
+}
+
+.findings-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.findings-head strong,
+.findings-head span {
+  display: block;
+}
+
+.findings-head strong {
+  color: #f0fdff;
+}
+
+.findings-head span,
+.findings-head small {
+  color: #8fb6c2;
+  font-size: 13px;
+}
+
+.findings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.75fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.frame-viewer {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.image-stage {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(143, 219, 230, 0.14);
+  border-radius: 8px;
+  background: #050b12;
+  aspect-ratio: 1;
+}
+
+.image-stage img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.image-error {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  color: #ffb1bc;
+  text-align: center;
+  word-break: break-all;
+  background: rgba(5, 11, 18, 0.96);
+}
+
+.bbox {
+  position: absolute;
+  border: 2px solid #ffcf5a;
+  background: rgba(255, 207, 90, 0.2);
+  box-shadow: 0 0 0 9999px rgba(7, 19, 31, 0.08), 0 0 20px rgba(255, 207, 90, 0.45);
+  pointer-events: none;
+}
+
+.frame-controls {
+  display: grid;
+  grid-template-columns: 42px 1fr 42px;
+  gap: 8px;
+  align-items: center;
+}
+
+.frame-controls button {
+  height: 38px;
+  border: 1px solid rgba(143, 219, 230, 0.22);
+  border-radius: 6px;
+  color: #dffcff;
+  background: rgba(85, 228, 242, 0.1);
+}
+
+.frame-controls span {
+  color: #accbd4;
+  text-align: center;
+  font-size: 13px;
+}
+
+.finding-list {
+  min-height: 0;
+  max-height: min(620px, 64vh);
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.finding-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  gap: 4px 10px;
+  padding: 11px;
+  border: 1px solid rgba(143, 219, 230, 0.14);
+  border-radius: 8px;
+  color: #d9edf2;
+  text-align: left;
+  background: rgba(12, 30, 47, 0.7);
+}
+
+.finding-item:hover,
+.finding-item.active {
+  border-color: rgba(255, 207, 90, 0.45);
+  background: rgba(46, 55, 58, 0.86);
+}
+
+.finding-item strong,
+.finding-item span:not(.category-dot),
+.finding-item small {
+  grid-column: 2;
+}
+
+.finding-item strong {
+  color: #f7fdff;
+}
+
+.finding-item span:not(.category-dot) {
+  color: #b8d7df;
+}
+
+.finding-item small {
+  color: #89aab5;
+  line-height: 1.45;
+}
+
+.category-dot {
+  grid-row: 1 / span 3;
+  width: 10px;
+  height: 10px;
+  margin-top: 7px;
+  border-radius: 999px;
+  background: #55e4f2;
+}
+
+.category-dot.rib {
+  background: #ffbd66;
+}
+
+.category-dot.bone {
+  background: #ff7f9c;
+}
+
+.category-dot.lymph {
+  background: #a8e66e;
 }
 
 .progress-panel {
@@ -490,7 +689,8 @@ button {
   }
 
   .message,
-  .message.user {
+  .message.user,
+  .message.wide {
     grid-template-columns: 32px minmax(0, 1fr);
     justify-content: stretch;
   }
@@ -521,5 +721,13 @@ button {
   .link-detected {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .findings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .finding-list {
+    max-height: none;
   }
 }

@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     """应用配置，所有字段均可通过同名环境变量覆盖。"""
 
     # ---------- 邀请码 ----------
-    invite_codes: list[str] = ["test-001", "test-002", "demo-2026"]
+    invite_codes: list[str] = ["MED-2026", "GUIAGENT", "RAD-AI-01", "DICOM-LAB", "test-001", "test-002", "demo-2026"]
 
     # ---------- JWT ----------
     jwt_secret: str = "change-me-in-production-use-env-secret"

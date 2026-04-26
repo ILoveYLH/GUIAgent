@@ -298,7 +298,7 @@ function HdModePageInner() {
   useEffect(() => {
     setMockStudyOpenError(null);
     if (!studyIdFromUrl || !origin) return;
-    if (!/^(?:\d+\.)+\d+$/.test(studyIdFromUrl)) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,255}$/.test(studyIdFromUrl)) {
       setMockStudyOpenError("链接中的检查 ID 格式无效");
       return;
     }

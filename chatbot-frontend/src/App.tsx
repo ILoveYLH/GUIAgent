@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { marked } from 'marked'
 import './App.css'
 
 type Role = 'user' | 'ai' | 'system'
+type FindingCategory = 'lung' | 'rib' | 'bone' | 'lymph'
 
 type ProgressStage = {
   key: string
@@ -12,30 +14,63 @@ type ProgressStage = {
   message?: string
 }
 
+type Finding = {
+  findingUid: string
+  type: string
+  location: string
+  dangerStr?: string
+  sliceIndex?: number
+  size?: number[]
+  hu?: number
+  boundingBox?: { x: number; y: number }[]
+  category: FindingCategory
+  probability?: number
+  description?: string
+}
+
 type ChatMessage = {
   id: string
   role: Role
   content: string
   createdAt: string
   progress?: ProgressStage[]
+  findings?: Finding[]
+  modelSummary?: string
+  frameBaseUrl?: string
+  totalFrames?: number
+}
+
+type HistoryMessage = {
+  role: 'user' | 'ai'
+  content: string
 }
 
 type SseEvent =
   | { type: 'progress'; stage: string; percent: number; message: string }
   | { type: 'report'; content: string }
-  | { type: 'diagnosis'; content: string; delta: string }
+  | { type: 'findings'; data: ModelResult; frame_base_url: string; total_frames?: number }
+  | { type: 'diagnosis'; delta: string }
   | { type: 'error'; message: string }
   | { type: 'done' }
 
+type ModelResult = {
+  report?: { summary?: string; detail?: string }
+  lung_lesions?: Record<string, unknown>[]
+  rib_lesions?: Record<string, unknown>[]
+  bone_metastasis_lesions?: Record<string, unknown>[]
+  lymphnode_lesions?: Record<string, unknown>[]
+}
+
 const INVITE_STORAGE_KEY = 'guiagent:invite-verified'
+const TOKEN_STORAGE_KEY = 'guiagent:auth-token'
 const VALID_INVITES = ['MED-2026', 'GUIAGENT', 'RAD-AI-01', 'DICOM-LAB']
 
 const PROGRESS_TEMPLATE: ProgressStage[] = [
-  { key: 'report', label: '📋 提取报告中...', percent: 0, status: 'pending' },
-  { key: 'capture', label: '🖼️ 采集影像中...', percent: 0, status: 'pending' },
-  { key: 'dicom', label: '🔄 重建 DICOM 中...', percent: 0, status: 'pending' },
-  { key: 'model', label: '🔬 AI 模型分析中...', percent: 0, status: 'pending' },
-  { key: 'diagnosis', label: '🩺 生成诊断报告中...', percent: 0, status: 'pending' },
+  { key: 'report', label: '提取报告中...', percent: 0, status: 'pending' },
+  { key: 'capture', label: '采集影像中...', percent: 0, status: 'pending' },
+  { key: 'dicom', label: '重建 DICOM 中...', percent: 0, status: 'pending' },
+  { key: 'model', label: 'AI 模型分析中...', percent: 0, status: 'pending' },
+  { key: 'diagnosis', label: '生成诊断报告中...', percent: 0, status: 'pending' },
 ]
 
 const conversations = [
@@ -54,10 +89,20 @@ const welcomeMessages: ChatMessage[] = [
   },
 ]
 
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+})
+
 function App() {
-  const [isVerified, setIsVerified] = useState(
-    () => localStorage.getItem(INVITE_STORAGE_KEY) === 'true',
-  )
+  const [authToken, setAuthToken] = useState(() => {
+    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY) ?? ''
+    return storedToken === 'offline' ? '' : storedToken
+  })
+  const [isVerified, setIsVerified] = useState(() => {
+    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY) ?? ''
+    return localStorage.getItem(INVITE_STORAGE_KEY) === 'true' && Boolean(storedToken) && storedToken !== 'offline'
+  })
   const [inviteCode, setInviteCode] = useState('')
   const [inviteError, setInviteError] = useState('')
   const [messages, setMessages] = useState<ChatMessage[]>(welcomeMessages)
@@ -83,19 +128,28 @@ function App() {
       return
     }
 
-    const isValid = await verifyInvite(normalizedCode)
-    if (!isValid) {
+    const token = await verifyInvite(normalizedCode)
+    if (!token) {
       setInviteError('邀请码无效，请检查后重试')
       return
     }
 
     localStorage.setItem(INVITE_STORAGE_KEY, 'true')
+    localStorage.setItem(TOKEN_STORAGE_KEY, token)
+    setAuthToken(token)
     setIsVerified(true)
     setInviteError('')
   }
 
   async function handleSendMessage(content = draft.trim()) {
     if (!content || isStreaming) return
+    if (!authToken) {
+      localStorage.removeItem(INVITE_STORAGE_KEY)
+      localStorage.removeItem(TOKEN_STORAGE_KEY)
+      setIsVerified(false)
+      setInviteError('登录已过期，请重新输入邀请码')
+      return
+    }
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -103,13 +157,14 @@ function App() {
       content,
       createdAt: '刚刚',
     }
+    const history = buildHistory(messages)
 
     setMessages((current) => [...current, userMessage])
     setDraft('')
-    await runChatFlow(content)
+    await runChatFlow(content, history)
   }
 
-  async function runChatFlow(content: string) {
+  async function runChatFlow(content: string, history: HistoryMessage[]) {
     setIsStreaming(true)
 
     const progressId = crypto.randomUUID()
@@ -133,7 +188,7 @@ function App() {
     ])
 
     try {
-      for await (const event of streamChatEvents(content)) {
+      for await (const event of streamChatEvents(content, authToken, history)) {
         if (event.type === 'progress') {
           setMessages((current) =>
             updateProgressMessage(current, progressId, event.stage, event.percent, event.message),
@@ -143,6 +198,18 @@ function App() {
         if (event.type === 'report') {
           setMessages((current) =>
             appendAiContent(current, aiId, `### 原始报告提取\n${event.content}\n\n`),
+          )
+        }
+
+        if (event.type === 'findings') {
+          const findings = normalizeFindings(event.data)
+          setMessages((current) =>
+            attachFindings(current, aiId, {
+              findings,
+              frameBaseUrl: event.frame_base_url,
+              totalFrames: event.total_frames,
+              modelSummary: event.data.report?.summary,
+            }),
           )
         }
 
@@ -174,8 +241,7 @@ function App() {
           <p className="eyebrow">GUIAgent Medical Workspace</p>
           <h1 id="invite-title">进入医学影像智能诊断助手</h1>
           <p className="invite-copy">
-            请输入内测邀请码。当前前端已内置临时验证，后续可无缝切换到
-            <code>/api/verify-invite</code>。
+            请输入内测邀请码。当前前端会通过 <code>/api/verify-invite</code> 获取会话令牌。
           </p>
 
           <form className="invite-form" onSubmit={handleInviteSubmit}>
@@ -210,7 +276,11 @@ function App() {
           </div>
         </div>
 
-        <button className="new-chat-button" type="button" onClick={() => setMessages(welcomeMessages)}>
+        <button
+          className="new-chat-button"
+          type="button"
+          onClick={() => setMessages(welcomeMessages)}
+        >
           + 新对话
         </button>
 
@@ -239,6 +309,8 @@ function App() {
             type="button"
             onClick={() => {
               localStorage.removeItem(INVITE_STORAGE_KEY)
+              localStorage.removeItem(TOKEN_STORAGE_KEY)
+              setAuthToken('')
               setIsVerified(false)
             }}
           >
@@ -255,7 +327,7 @@ function App() {
         <div className="composer-wrap">
           {detectedLink && (
             <div className="link-detected">
-              <span>🔗 检测到医学影像链接，是否开始分析？</span>
+              <span>检测到医学影像链接，是否开始分析？</span>
               <button type="button" onClick={() => handleSendMessage(detectedLink)}>
                 开始分析
               </button>
@@ -293,16 +365,28 @@ function App() {
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   return (
-    <article className={`message ${message.role}`}>
+    <article className={`message ${message.role} ${message.findings ? 'wide' : ''}`}>
       <div className="avatar">{message.role === 'user' ? '我' : message.role === 'ai' ? 'AI' : '进'}</div>
       <div className="bubble">
         {message.progress ? (
           <ProgressPanel stages={message.progress} />
         ) : (
-          <div
-            className="markdown"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content || '正在生成...') }}
-          />
+          <>
+            {(message.content || !message.findings) && (
+              <div
+                className="markdown"
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content || '正在生成...') }}
+              />
+            )}
+            {message.findings && message.frameBaseUrl && (
+              <FindingsPanel
+                findings={message.findings}
+                modelSummary={message.modelSummary}
+                frameBaseUrl={message.frameBaseUrl}
+                totalFrames={message.totalFrames}
+              />
+            )}
+          </>
         )}
       </div>
     </article>
@@ -333,9 +417,122 @@ function ProgressPanel({ stages }: { stages: ProgressStage[] }) {
   )
 }
 
-async function verifyInvite(code: string) {
-  if (VALID_INVITES.includes(code)) return true
+function FindingsPanel({
+  findings,
+  modelSummary,
+  frameBaseUrl,
+  totalFrames,
+}: {
+  findings: Finding[]
+  modelSummary?: string
+  frameBaseUrl: string
+  totalFrames?: number
+}) {
+  const firstFrame = findings.find((item) => typeof item.sliceIndex === 'number')?.sliceIndex ?? 0
+  const [selectedId, setSelectedId] = useState(findings[0]?.findingUid ?? '')
+  const [frameIndex, setFrameIndex] = useState(firstFrame)
+  const [imageSize, setImageSize] = useState({ width: 1044, height: 1044 })
+  const [imageError, setImageError] = useState(false)
 
+  const selected = findings.find((item) => item.findingUid === selectedId) ?? findings[0]
+  const activeBox =
+    !imageError && selected?.boundingBox && selected.sliceIndex === frameIndex
+      ? selected.boundingBox
+      : undefined
+  const maxFrame = Math.max((totalFrames ?? 1) - 1, 0)
+  const frameUrl = `${frameBaseUrl}/frame_${String(clamp(frameIndex, 0, maxFrame)).padStart(4, '0')}.png`
+
+  return (
+    <section className="findings-panel">
+      <div className="findings-head">
+        <div>
+          <strong>模型结构化发现</strong>
+          {modelSummary && <span>{modelSummary}</span>}
+        </div>
+        <small>{findings.length} 个病灶</small>
+      </div>
+
+      <div className="findings-grid">
+        <div className="frame-viewer">
+          <div className="image-stage">
+            <img
+              src={frameUrl}
+              alt={`frame ${frameIndex}`}
+              onLoad={(event) => {
+                setImageError(false)
+                setImageSize({
+                  width: event.currentTarget.naturalWidth || 1044,
+                  height: event.currentTarget.naturalHeight || 1044,
+                })
+              }}
+              onError={() => setImageError(true)}
+            />
+            {imageError && <div className="image-error">帧图像加载失败：{frameUrl}</div>}
+            {activeBox && <BoundingBox box={activeBox} imageSize={imageSize} />}
+          </div>
+          <div className="frame-controls">
+            <button type="button" onClick={() => setFrameIndex((value) => clamp(value - 1, 0, maxFrame))}>
+              ‹
+            </button>
+            <span>
+              frame {clamp(frameIndex, 0, maxFrame)}/{maxFrame}
+            </span>
+            <button type="button" onClick={() => setFrameIndex((value) => clamp(value + 1, 0, maxFrame))}>
+              ›
+            </button>
+          </div>
+        </div>
+
+        <div className="finding-list">
+          {findings.map((finding, index) => (
+            <button
+              className={finding.findingUid === selectedId ? 'finding-item active' : 'finding-item'}
+              key={finding.findingUid}
+              type="button"
+              onClick={() => {
+                setSelectedId(finding.findingUid)
+                if (typeof finding.sliceIndex === 'number') setFrameIndex(finding.sliceIndex)
+              }}
+            >
+              <span className={`category-dot ${finding.category}`} />
+              <strong>{categoryLabel(finding.category)} #{index + 1}</strong>
+              <span>{finding.location}</span>
+              <small>{finding.description}</small>
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function BoundingBox({
+  box,
+  imageSize,
+}: {
+  box: { x: number; y: number }[]
+  imageSize: { width: number; height: number }
+}) {
+  const [start, end] = box
+  const left = (Math.min(start.x, end.x) / imageSize.width) * 100
+  const top = (Math.min(start.y, end.y) / imageSize.height) * 100
+  const width = (Math.abs(end.x - start.x) / imageSize.width) * 100
+  const height = (Math.abs(end.y - start.y) / imageSize.height) * 100
+
+  return (
+    <span
+      className="bbox"
+      style={{
+        left: `${left}%`,
+        top: `${top}%`,
+        width: `${width}%`,
+        height: `${height}%`,
+      }}
+    />
+  )
+}
+
+async function verifyInvite(code: string) {
   try {
     const response = await fetch('/api/verify-invite', {
       method: 'POST',
@@ -343,26 +540,43 @@ async function verifyInvite(code: string) {
       body: JSON.stringify({ code }),
     })
 
-    if (!response.ok) return false
-    const data = (await response.json()) as { valid?: boolean }
-    return Boolean(data.valid)
+    if (!response.ok) return ''
+    const data = (await response.json()) as { valid?: boolean; token?: string | null }
+    if (data.valid && data.token) return data.token
   } catch {
-    return false
+    if (VALID_INVITES.includes(code)) return ''
   }
+
+  return ''
 }
 
-async function* streamChatEvents(content: string): AsyncGenerator<SseEvent> {
+async function* streamChatEvents(
+  content: string,
+  token: string,
+  history: HistoryMessage[],
+): AsyncGenerator<SseEvent> {
   try {
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: content }),
+      body: JSON.stringify({ message: content, token, history }),
     })
 
-    if (!response.ok || !response.body) throw new Error('API unavailable')
+    if (!response.ok || !response.body) {
+      let detail = ''
+      try {
+        detail = formatApiError(await response.json())
+      } catch {
+        detail = ''
+      }
+      throw new Error(detail || `API request failed (${response.status})`)
+    }
     yield* parseSseStream(response.body)
-  } catch {
-    yield* mockChatEvents(content)
+  } catch (error) {
+    yield {
+      type: 'error',
+      message: error instanceof Error ? error.message : 'API unavailable',
+    }
   }
 }
 
@@ -379,49 +593,68 @@ async function* parseSseStream(body: ReadableStream<Uint8Array>): AsyncGenerator
     buffer = chunks.pop() ?? ''
 
     for (const chunk of chunks) {
-      const eventLine = chunk.split('\n').find((line) => line.startsWith('event:'))
-      const dataLine = chunk.split('\n').find((line) => line.startsWith('data:'))
-      if (!eventLine || !dataLine) continue
+      const lines = chunk.split('\n')
+      const eventLine = lines.find((line) => line.startsWith('event:'))
+      const dataLines = lines.filter((line) => line.startsWith('data:'))
+      if (!eventLine || dataLines.length === 0) continue
 
       const type = eventLine.replace('event:', '').trim()
-      const data = JSON.parse(dataLine.replace('data:', '').trim())
+      const data = JSON.parse(dataLines.map((line) => line.replace('data:', '').trim()).join('\n'))
       yield { type, ...data } as SseEvent
     }
   }
 }
 
-async function* mockChatEvents(content: string): AsyncGenerator<SseEvent> {
-  const events: SseEvent[] = [
-    { type: 'progress', stage: 'report', percent: 18, message: '📋 提取报告中...' },
-    { type: 'report', content: '已识别影像链接，模拟提取到检查类型：胸部 CT 平扫。报告文本质量良好。' },
-    { type: 'progress', stage: 'capture', percent: 38, message: '🖼️ 采集影像中 (32/150)...' },
-    { type: 'progress', stage: 'dicom', percent: 58, message: '🔄 重建 DICOM 中...' },
-    { type: 'progress', stage: 'model', percent: 78, message: '🔬 AI 模型分析中...' },
-    { type: 'progress', stage: 'diagnosis', percent: 92, message: '🩺 生成诊断报告中...' },
-    { type: 'done' },
-  ]
+function normalizeFindings(modelResult: ModelResult): Finding[] {
+  const lung = (modelResult.lung_lesions ?? []).map((item, index) => {
+    const size = numberArray(item.size)
+    return {
+      findingUid: stringValue(item.findingUid, `lung-${index}`),
+      type: stringValue(item.type, '肺结节'),
+      location: stringValue(item.location, '未知位置'),
+      dangerStr: stringValue(item.dangerStr, ''),
+      sliceIndex: numberValue(item.sliceIndex),
+      size,
+      hu: numberValue(item.hu),
+      boundingBox: bboxValue(item.boundingBox),
+      category: 'lung' as const,
+      probability: probabilityValue(item),
+      description: `${stringValue(item.type, '结节')} ${formatSize(size)} ${stringValue(item.dangerStr, '')} Prob: ${formatProbability(probabilityValue(item))}`,
+    }
+  })
 
-  for (const event of events.slice(0, -1)) {
-    await wait(520)
-    yield event
-  }
+  const rib = (modelResult.rib_lesions ?? []).map((item, index) => ({
+    findingUid: stringValue(item.FindingUID, `rib-${index}`),
+    type: '肋骨骨折',
+    location: `第 ${stringValue(item.RibLabel, '?')} 肋`,
+    category: 'rib' as const,
+    probability: probabilityValue(item),
+    description: `3D 框宽 ${stringValue(item.Width, '?')}mm Prob: ${formatProbability(probabilityValue(item))}`,
+  }))
 
-  const diagnosis = [
-    '### AI 诊断建议\n',
-    '- 双肺纹理显示清晰，未见明确大片实变影。\n',
-    '- 右下肺可疑小结节影，建议结合薄层重建与既往影像对比。\n',
-    '- 纵隔结构居中，未见明显胸腔积液征象。\n\n',
-    `**输入来源**：${extractFirstUrl(content) ? '医学影像链接' : '文本问诊'}\n\n`,
-    '> 结果为前端模拟流式输出，仅用于界面联调，不能替代医生诊断。',
-  ].join('')
+  const bone = (modelResult.bone_metastasis_lesions ?? []).map((item, index) => ({
+    findingUid: stringValue(item.FindingUID, `bone-${index}`),
+    type: '骨转移可疑灶',
+    location: `骨位置 ${stringValue(item.LocationFirst, '?')}-${stringValue(item.LocationSecond, '?')}`,
+    category: 'bone' as const,
+    probability: probabilityValue(item),
+    description: `病变类型 ${stringValue(item.LesionType, '?')} Prob: ${formatProbability(probabilityValue(item))}`,
+  }))
 
-  for (const char of diagnosis) {
-    await wait(18)
-    yield { type: 'diagnosis', content: diagnosis, delta: char }
-  }
+  const lymph = (modelResult.lymphnode_lesions ?? []).map((item, index) => ({
+    findingUid: stringValue(item.FindingUID, `lymph-${index}`),
+    type: '淋巴结',
+    location: `Slice ${stringValue(item.Slice, '?')}`,
+    sliceIndex: numberValue(item.Slice),
+    size: [numberValue(item.Long_axis_mm), numberValue(item.Short_axis_mm)].filter(
+      (value): value is number => typeof value === 'number',
+    ),
+    category: 'lymph' as const,
+    probability: probabilityValue(item),
+    description: `${stringValue(item.Long_axis_mm, '?')}x${stringValue(item.Short_axis_mm, '?')}mm Prob: ${formatProbability(probabilityValue(item))}`,
+  }))
 
-  yield { type: 'progress', stage: 'diagnosis', percent: 100, message: '🩺 生成诊断报告中...' }
-  yield { type: 'done' }
+  return [...lung, ...rib, ...bone, ...lymph]
 }
 
 function updateProgressMessage(
@@ -456,28 +689,97 @@ function appendAiContent(messages: ChatMessage[], id: string, delta: string) {
   )
 }
 
+function attachFindings(
+  messages: ChatMessage[],
+  id: string,
+  data: Pick<ChatMessage, 'findings' | 'frameBaseUrl' | 'totalFrames' | 'modelSummary'>,
+) {
+  return messages.map((message) => (message.id === id ? { ...message, ...data } : message))
+}
+
+function buildHistory(messages: ChatMessage[]): HistoryMessage[] {
+  return messages
+    .filter((message) => (message.role === 'user' || message.role === 'ai') && message.content.trim())
+    .slice(-10)
+    .map((message) => ({ role: message.role as 'user' | 'ai', content: message.content.slice(-1200) }))
+}
+
 function extractFirstUrl(value: string) {
   return value.match(/https?:\/\/[^\s]+/i)?.[0] ?? ''
 }
 
 function renderMarkdown(markdown: string) {
-  const escaped = markdown
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-
-  return escaped
-    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^- (.*)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
-    .replace(/^&gt; (.*)$/gm, '<blockquote>$1</blockquote>')
-    .replace(/\n/g, '<br />')
+  return marked.parse(markdown) as string
 }
 
-function wait(ms: number) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms))
+function formatApiError(payload: unknown) {
+  if (!payload || typeof payload !== 'object') return ''
+  const detail = (payload as { detail?: unknown }).detail
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (!item || typeof item !== 'object') return String(item)
+        const entry = item as { loc?: unknown[]; msg?: string }
+        const loc = Array.isArray(entry.loc) ? entry.loc.join('.') : ''
+        return loc && entry.msg ? `${loc}: ${entry.msg}` : entry.msg || JSON.stringify(item)
+      })
+      .join('; ')
+  }
+  return JSON.stringify(detail ?? payload)
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value))
+}
+
+function categoryLabel(category: FindingCategory) {
+  return {
+    lung: '肺结节',
+    rib: '肋骨骨折',
+    bone: '骨转移',
+    lymph: '淋巴结',
+  }[category]
+}
+
+function numberValue(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function stringValue(value: unknown, fallback: string) {
+  if (typeof value === 'string' && value) return value
+  if (typeof value === 'number') return String(value)
+  return fallback
+}
+
+function numberArray(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is number => typeof item === 'number') : undefined
+}
+
+function bboxValue(value: unknown) {
+  if (!Array.isArray(value) || value.length !== 2) return undefined
+  const points = value
+    .map((point) => {
+      if (!point || typeof point !== 'object') return undefined
+      const x = numberValue((point as Record<string, unknown>).x)
+      const y = numberValue((point as Record<string, unknown>).y)
+      return typeof x === 'number' && typeof y === 'number' ? { x, y } : undefined
+    })
+    .filter((point): point is { x: number; y: number } => Boolean(point))
+  return points.length === 2 ? points : undefined
+}
+
+function probabilityValue(item: Record<string, unknown>) {
+  return numberValue(item.Probality) ?? numberValue(item.Probability)
+}
+
+function formatProbability(value?: number) {
+  return typeof value === 'number' ? value.toFixed(2) : '--'
+}
+
+function formatSize(size?: number[]) {
+  if (!size?.length) return ''
+  return `${size.map((value) => value.toFixed(value >= 10 ? 0 : 1)).join('x')}mm`
 }
 
 export default App
