@@ -118,18 +118,35 @@ async def _fallback_diagnosis(report_data: dict, model_result: dict) -> AsyncGen
         yield char
 
 
+async def _fallback_followup(report_data: dict, model_result: dict, user_question: str) -> AsyncGenerator[str, None]:
+    lung_count = len(model_result.get("lung_lesions", []))
+    text = (
+        "## 追问回答\n\n"
+        f"你问的是：{user_question}\n\n"
+        f"结合当前原始报告和 AI 结构化结果，本次 AI 共检出 {lung_count} 个肺部结节。"
+        "是否需要手术、活检或随访，需要结合结节大小、密度、增长速度、患者危险因素和既往影像变化综合判断。"
+        "如果问题指向某个具体病灶，建议同时核对该病灶的层面、大小和风险标记。\n\n"
+        "> 以上内容为本地降级生成，Qwen API 未配置或调用不可用，不能作为最终诊断依据。"
+    )
+    for char in text:
+        await asyncio.sleep(0.004)
+        yield char
+
+
 async def generate_diagnosis(
     report_data: dict,
     model_result: dict,
     conversation_history: list[dict],
     api_key: str,
     model: str = "qwen-plus",
+    user_question: str | None = None,
 ) -> AsyncGenerator[str, None]:
     """
     流式调用 dashscope Generation API。
     """
     if not api_key:
-        async for delta in _fallback_diagnosis(report_data, model_result):
+        fallback = _fallback_followup(report_data, model_result, user_question) if user_question else _fallback_diagnosis(report_data, model_result)
+        async for delta in fallback:
             yield delta
         return
 
@@ -137,17 +154,31 @@ async def generate_diagnosis(
         f"「原始报告」\n{_compress_report(report_data)}\n\n"
         f"「AI 模型检测结果」\n{_compress_model_result(model_result)}"
     )
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user_context},
-        *_recent_history(conversation_history),
-    ]
+    if user_question:
+        followup_prompt = (
+            f"{SYSTEM_PROMPT}\n\n"
+            "当前是追问模式。请把原始报告和 AI 模型结果作为背景知识，结合多轮上下文回答用户最新问题；"
+            "不要重新生成完整首次诊断，直接回答问题并给出必要依据。"
+        )
+        messages = [
+            {"role": "system", "content": followup_prompt},
+            {"role": "user", "content": user_context},
+            *_recent_history(conversation_history),
+            {"role": "user", "content": user_question},
+        ]
+    else:
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_context},
+            *_recent_history(conversation_history),
+        ]
 
     try:
         async for delta in _stream_dashscope(messages, api_key, model):
             yield delta
     except Exception:
-        async for delta in _fallback_diagnosis(report_data, model_result):
+        fallback = _fallback_followup(report_data, model_result, user_question) if user_question else _fallback_diagnosis(report_data, model_result)
+        async for delta in fallback:
             yield delta
 
 

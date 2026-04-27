@@ -195,17 +195,40 @@ button {
 
 .history-list {
   display: grid;
+  gap: 16px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.history-group {
+  display: grid;
   gap: 8px;
 }
 
+.history-group h2 {
+  margin: 0;
+  color: #6f9eac;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.empty-history {
+  margin: 0;
+  color: #749cab;
+  font-size: 13px;
+}
+
 .history-item {
+  position: relative;
   width: 100%;
-  padding: 12px;
+  min-height: 76px;
+  padding: 12px 34px 12px 12px;
   border: 1px solid transparent;
   border-radius: 6px;
   color: #cce9ef;
   text-align: left;
   background: transparent;
+  cursor: pointer;
   transition: background 160ms ease, border-color 160ms ease;
 }
 
@@ -216,13 +239,69 @@ button {
 }
 
 .history-item span,
-.history-item small {
+.history-item small,
+.history-item em {
   display: block;
+}
+
+.history-item span {
+  overflow: hidden;
+  color: #e8fbff;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .history-item small {
   margin-top: 4px;
   color: #749cab;
+  font-size: 12px;
+}
+
+.history-item em {
+  overflow: hidden;
+  margin-top: 6px;
+  color: #8eb6c1;
+  font-size: 12px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-item input {
+  width: 100%;
+  min-width: 0;
+  height: 26px;
+  border: 1px solid rgba(85, 228, 242, 0.34);
+  border-radius: 6px;
+  color: #f1fbff;
+  background: rgba(7, 20, 32, 0.92);
+  outline: none;
+}
+
+.delete-chat-button {
+  position: absolute;
+  top: 9px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  color: #d4f9ff;
+  background: rgba(255, 122, 144, 0.14);
+  opacity: 0;
+  transition: opacity 160ms ease, background 160ms ease;
+}
+
+.history-item:hover .delete-chat-button,
+.history-item:focus-within .delete-chat-button {
+  opacity: 1;
+}
+
+.delete-chat-button:hover {
+  background: rgba(255, 122, 144, 0.28);
 }
 
 .chat-main {

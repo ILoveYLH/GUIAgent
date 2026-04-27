@@ -40,12 +40,32 @@ type ChatMessage = {
   totalFrames?: number
 }
 
-type HistoryMessage = {
-  role: 'user' | 'ai'
+type Conversation = {
+  id: string
+  title: string
+  created_at: string
+  updated_at: string
+  message_count: number
+  last_message_preview?: string
+  last_message_at?: string
+}
+
+type StoredMessage = {
+  id: string
+  role: Role
   content: string
+  message_type: 'text' | 'progress' | 'report' | 'findings' | 'diagnosis'
+  metadata?: Record<string, unknown>
+  created_at: string
+}
+
+type StoredConversation = Conversation & {
+  messages: StoredMessage[]
 }
 
 type SseEvent =
+  | { type: 'init'; conversation_id: string }
+  | { type: 'title'; conversation_id: string; title: string }
   | { type: 'progress'; stage: string; percent: number; message: string }
   | { type: 'report'; content: string }
   | { type: 'findings'; data: ModelResult; frame_base_url: string; total_frames?: number }
@@ -73,21 +93,15 @@ const PROGRESS_TEMPLATE: ProgressStage[] = [
   { key: 'diagnosis', label: '生成诊断报告中...', percent: 0, status: 'pending' },
 ]
 
-const conversations = [
-  { id: 'today', title: '今日分析', meta: '医学影像链接' },
-  { id: 'demo', title: '胸部 CT 复查', meta: '模拟病例' },
-  { id: 'archive', title: '历史报告草稿', meta: '3 条消息' },
-]
-
-const welcomeMessages: ChatMessage[] = [
-  {
+function makeWelcomeMessages(): ChatMessage[] {
+  return [{
     id: crypto.randomUUID(),
     role: 'ai',
     content:
       '你好，我是医学影像 AI 助手。你可以直接输入问题，也可以粘贴医学影像分享链接，我会按流程提取报告、采集影像、重建 DICOM 并生成结构化诊断建议。',
     createdAt: '刚刚',
-  },
-]
+  }]
+}
 
 marked.setOptions({
   gfm: true,
@@ -105,12 +119,20 @@ function App() {
   })
   const [inviteCode, setInviteCode] = useState('')
   const [inviteError, setInviteError] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>(welcomeMessages)
+  const [messages, setMessages] = useState<ChatMessage[]>(() => makeWelcomeMessages())
+  const [conversationList, setConversationList] = useState<Conversation[]>([])
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
+  const [editingTitleId, setEditingTitleId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState('')
   const [draft, setDraft] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const detectedLink = useMemo(() => extractFirstUrl(draft), [draft])
+  const groupedConversations = useMemo(
+    () => groupConversationsByDate(conversationList),
+    [conversationList],
+  )
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -118,6 +140,11 @@ function App() {
       behavior: 'smooth',
     })
   }, [messages])
+
+  useEffect(() => {
+    if (!isVerified) return
+    refreshConversationList()
+  }, [isVerified])
 
   async function handleInviteSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -141,6 +168,48 @@ function App() {
     setInviteError('')
   }
 
+  async function refreshConversationList() {
+    try {
+      const list = await fetchConversationList()
+      setConversationList(list)
+    } catch {
+      setConversationList([])
+    }
+  }
+
+  async function handleNewConversation() {
+    const conversation = await createConversation()
+    setConversationList((current) => [conversation, ...current.filter((item) => item.id !== conversation.id)])
+    setActiveConversationId(conversation.id)
+    setMessages(makeWelcomeMessages())
+  }
+
+  async function handleSelectConversation(id: string) {
+    if (isStreaming) return
+    setActiveConversationId(id)
+    const conversation = await fetchConversation(id)
+    setMessages(conversation.messages.length ? conversation.messages.map(mapStoredMessage) : makeWelcomeMessages())
+  }
+
+  async function handleDeleteConversation(id: string) {
+    await deleteConversation(id)
+    setConversationList((current) => current.filter((conversation) => conversation.id !== id))
+    if (activeConversationId === id) {
+      setActiveConversationId(null)
+      setMessages(makeWelcomeMessages())
+    }
+  }
+
+  async function submitTitle(id: string) {
+    const title = editingTitle.trim()
+    setEditingTitleId(null)
+    if (!title) return
+    await updateConversationTitle(id, title)
+    setConversationList((current) =>
+      current.map((conversation) => (conversation.id === id ? { ...conversation, title } : conversation)),
+    )
+  }
+
   async function handleSendMessage(content = draft.trim()) {
     if (!content || isStreaming) return
     if (!authToken) {
@@ -157,38 +226,52 @@ function App() {
       content,
       createdAt: '刚刚',
     }
-    const history = buildHistory(messages)
-
     setMessages((current) => [...current, userMessage])
     setDraft('')
-    await runChatFlow(content, history)
+    await runChatFlow(content)
   }
 
-  async function runChatFlow(content: string, history: HistoryMessage[]) {
+  async function runChatFlow(content: string) {
     setIsStreaming(true)
 
     const progressId = crypto.randomUUID()
     const aiId = crypto.randomUUID()
+    const hasLink = Boolean(extractFirstUrl(content))
 
-    setMessages((current) => [
-      ...current,
-      {
-        id: progressId,
-        role: 'system',
-        content: '系统正在处理医学影像任务',
-        createdAt: '处理中',
-        progress: PROGRESS_TEMPLATE.map((stage) => ({ ...stage })),
-      },
-      {
+    setMessages((current) => {
+      const next = [...current]
+      if (hasLink) {
+        next.push({
+          id: progressId,
+          role: 'system',
+          content: '系统正在处理医学影像任务',
+          createdAt: '处理中',
+          progress: PROGRESS_TEMPLATE.map((stage) => ({ ...stage })),
+        })
+      }
+      next.push({
         id: aiId,
         role: 'ai',
         content: '',
         createdAt: '生成中',
-      },
-    ])
+      })
+      return next
+    })
 
     try {
-      for await (const event of streamChatEvents(content, authToken, history)) {
+      for await (const event of streamChatEvents(content, authToken, activeConversationId)) {
+        if (event.type === 'init') {
+          setActiveConversationId(event.conversation_id)
+        }
+
+        if (event.type === 'title') {
+          setConversationList((current) =>
+            current.map((conversation) =>
+              conversation.id === event.conversation_id ? { ...conversation, title: event.title } : conversation,
+            ),
+          )
+        }
+
         if (event.type === 'progress') {
           setMessages((current) =>
             updateProgressMessage(current, progressId, event.stage, event.percent, event.message),
@@ -221,6 +304,10 @@ function App() {
           setMessages((current) =>
             appendAiContent(current, aiId, `\n\n> 处理失败：${event.message}`),
           )
+        }
+
+        if (event.type === 'done') {
+          refreshConversationList()
         }
       }
     } finally {
@@ -279,22 +366,63 @@ function App() {
         <button
           className="new-chat-button"
           type="button"
-          onClick={() => setMessages(welcomeMessages)}
+          onClick={handleNewConversation}
         >
           + 新对话
         </button>
 
         <nav className="history-list">
-          {conversations.map((conversation, index) => (
-            <button
-              className={index === 0 ? 'history-item active' : 'history-item'}
-              key={conversation.id}
-              type="button"
-            >
-              <span>{conversation.title}</span>
-              <small>{conversation.meta}</small>
-            </button>
+          {groupedConversations.map((group) => (
+            <section className="history-group" key={group.label}>
+              <h2>{group.label}</h2>
+              {group.items.map((conversation) => (
+                <div
+                  className={conversation.id === activeConversationId ? 'history-item active' : 'history-item'}
+                  key={conversation.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleSelectConversation(conversation.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') handleSelectConversation(conversation.id)
+                  }}
+                  onDoubleClick={() => {
+                    setEditingTitleId(conversation.id)
+                    setEditingTitle(conversation.title)
+                  }}
+                >
+                  {editingTitleId === conversation.id ? (
+                    <input
+                      value={editingTitle}
+                      autoFocus
+                      onChange={(event) => setEditingTitle(event.target.value)}
+                      onClick={(event) => event.stopPropagation()}
+                      onBlur={() => submitTitle(conversation.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') submitTitle(conversation.id)
+                        if (event.key === 'Escape') setEditingTitleId(null)
+                      }}
+                    />
+                  ) : (
+                    <span>{conversation.title}</span>
+                  )}
+                  <small>{formatConversationMeta(conversation)}</small>
+                  {conversation.last_message_preview && <em>{conversation.last_message_preview}</em>}
+                  <button
+                    className="delete-chat-button"
+                    type="button"
+                    aria-label="删除对话"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      handleDeleteConversation(conversation.id)
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </section>
           ))}
+          {!conversationList.length && <p className="empty-history">暂无历史对话</p>}
         </nav>
       </aside>
 
@@ -550,16 +678,48 @@ async function verifyInvite(code: string) {
   return ''
 }
 
+async function fetchConversationList() {
+  const response = await fetch('/api/conversations')
+  if (!response.ok) throw new Error(`加载对话失败 (${response.status})`)
+  return (await response.json()) as Conversation[]
+}
+
+async function createConversation() {
+  const response = await fetch('/api/conversations', { method: 'POST' })
+  if (!response.ok) throw new Error(`创建对话失败 (${response.status})`)
+  return (await response.json()) as Conversation
+}
+
+async function fetchConversation(id: string) {
+  const response = await fetch(`/api/conversations/${id}`)
+  if (!response.ok) throw new Error(`加载对话失败 (${response.status})`)
+  return (await response.json()) as StoredConversation
+}
+
+async function deleteConversation(id: string) {
+  const response = await fetch(`/api/conversations/${id}`, { method: 'DELETE' })
+  if (!response.ok) throw new Error(`删除对话失败 (${response.status})`)
+}
+
+async function updateConversationTitle(id: string, title: string) {
+  const response = await fetch(`/api/conversations/${id}/title`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title }),
+  })
+  if (!response.ok) throw new Error(`更新标题失败 (${response.status})`)
+}
+
 async function* streamChatEvents(
   content: string,
   token: string,
-  history: HistoryMessage[],
+  conversationId: string | null,
 ): AsyncGenerator<SseEvent> {
   try {
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: content, token, history }),
+      body: JSON.stringify({ message: content, token, conversation_id: conversationId }),
     })
 
     if (!response.ok || !response.body) {
@@ -578,6 +738,62 @@ async function* streamChatEvents(
       message: error instanceof Error ? error.message : 'API unavailable',
     }
   }
+}
+
+function mapStoredMessage(message: StoredMessage): ChatMessage {
+  if (message.message_type === 'progress') {
+    const stage = stringValue(message.metadata?.stage, 'report')
+    const percent = numberValue(message.metadata?.percent) ?? 0
+    return {
+      id: message.id,
+      role: 'system',
+      content: message.content,
+      createdAt: formatMessageTime(message.created_at),
+      progress: progressSnapshot(stage, percent, message.content),
+    }
+  }
+
+  if (message.message_type === 'report') {
+    return {
+      id: message.id,
+      role: 'ai',
+      content: `### 原始报告提取\n${message.content}`,
+      createdAt: formatMessageTime(message.created_at),
+    }
+  }
+
+  if (message.message_type === 'findings') {
+    const data = (message.metadata?.data ?? {}) as ModelResult
+    return {
+      id: message.id,
+      role: 'ai',
+      content: '',
+      createdAt: formatMessageTime(message.created_at),
+      findings: normalizeFindings(data),
+      modelSummary: data.report?.summary,
+      frameBaseUrl: stringValue(message.metadata?.frame_base_url, ''),
+      totalFrames: numberValue(message.metadata?.total_frames),
+    }
+  }
+
+  return {
+    id: message.id,
+    role: message.role,
+    content: message.content,
+    createdAt: formatMessageTime(message.created_at),
+  }
+}
+
+function progressSnapshot(activeStage: string, percent: number, message: string): ProgressStage[] {
+  const activeIndex = PROGRESS_TEMPLATE.findIndex((stage) => stage.key === activeStage)
+  return PROGRESS_TEMPLATE.map((stage, index) => ({
+    ...stage,
+    percent: index < activeIndex ? 100 : stage.key === activeStage ? percent : 0,
+    status: (
+      index < activeIndex ? 'done' : stage.key === activeStage ? 'active' : 'pending'
+    ) as ProgressStage['status'],
+    message: stage.key === activeStage ? message : stage.message,
+  }))
 }
 
 async function* parseSseStream(body: ReadableStream<Uint8Array>): AsyncGenerator<SseEvent> {
@@ -697,13 +913,6 @@ function attachFindings(
   return messages.map((message) => (message.id === id ? { ...message, ...data } : message))
 }
 
-function buildHistory(messages: ChatMessage[]): HistoryMessage[] {
-  return messages
-    .filter((message) => (message.role === 'user' || message.role === 'ai') && message.content.trim())
-    .slice(-10)
-    .map((message) => ({ role: message.role as 'user' | 'ai', content: message.content.slice(-1200) }))
-}
-
 function extractFirstUrl(value: string) {
   return value.match(/https?:\/\/[^\s]+/i)?.[0] ?? ''
 }
@@ -727,6 +936,49 @@ function formatApiError(payload: unknown) {
       .join('; ')
   }
   return JSON.stringify(detail ?? payload)
+}
+
+function groupConversationsByDate(conversations: Conversation[]) {
+  const groups = [
+    { label: '今日', items: [] as Conversation[] },
+    { label: '昨天', items: [] as Conversation[] },
+    { label: '本周', items: [] as Conversation[] },
+    { label: '更早', items: [] as Conversation[] },
+  ]
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const yesterdayStart = todayStart - 24 * 60 * 60 * 1000
+  const weekStart = todayStart - 6 * 24 * 60 * 60 * 1000
+
+  conversations.forEach((conversation) => {
+    const time = new Date(conversation.updated_at).getTime()
+    if (time >= todayStart) groups[0].items.push(conversation)
+    else if (time >= yesterdayStart) groups[1].items.push(conversation)
+    else if (time >= weekStart) groups[2].items.push(conversation)
+    else groups[3].items.push(conversation)
+  })
+
+  return groups.filter((group) => group.items.length)
+}
+
+function formatConversationMeta(conversation: Conversation) {
+  const time = formatMessageTime(conversation.last_message_at || conversation.updated_at)
+  const count = conversation.message_count ? `${conversation.message_count} 条消息` : '新对话'
+  return `${time} · ${count}`
+}
+
+function formatMessageTime(value: string) {
+  if (!value) return '刚刚'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '刚刚'
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  if (diff < 60 * 1000) return '刚刚'
+  if (diff < 60 * 60 * 1000) return `${Math.floor(diff / 60000)}分钟前`
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  }
+  return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
 }
 
 function clamp(value: number, min: number, max: number) {

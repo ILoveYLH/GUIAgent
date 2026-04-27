@@ -20,6 +20,7 @@ dashscope>=1.22.0
 # openai>=1.60.0  # Qwen OpenAI-compatible API (alternative)
 
 # Utilities
+aiosqlite>=0.20.0
 pydantic>=2.10.0
 pydantic-settings>=2.7.0
 httpx>=0.28.0

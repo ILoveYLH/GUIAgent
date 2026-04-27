@@ -6,7 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from routers import auth, chat, model_callback
+from database import init_db
+from routers import auth, chat, conversations, model_callback
 
 
 app = FastAPI(title="GUIAgent Backend", version="0.1.0")
@@ -24,6 +25,7 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
+app.include_router(conversations.router, prefix="/api")
 app.include_router(model_callback.router, prefix="/api")
 app.mount(
     "/api/frames",
@@ -35,3 +37,8 @@ app.mount(
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    await init_db()

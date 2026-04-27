@@ -278,14 +278,14 @@ class TaskManager:
             await self._emit(callback, {"event": "error", "message": "请先提交一个医学影像链接完成分析，再继续追问。"})
             return
 
-        history = [*conversation_history, {"role": "user", "content": message}]
         await self._emit(callback, {"event": "progress", "stage": "diagnosis", "percent": 80, "message": "正在结合历史上下文生成回答"})
         async for delta in generate_diagnosis(
             task.report_data or {},
             task.model_result or {},
-            history,
+            conversation_history,
             settings.qwen_api_key,
             settings.qwen_model,
+            user_question=message,
         ):
             await self._emit(callback, {"event": "diagnosis", "delta": delta, "task_id": task.id})
         await self._emit(callback, {"event": "done", "task_id": task.id})
@@ -359,6 +359,9 @@ class TaskManager:
         reconstructed = output_dir / "reconstructed_dicom"
         if reconstructed.exists() and list(reconstructed.glob("*.dcm")):
             await self._set_status_event(task, TaskStatus.RECONSTRUCTING, "已发现缓存 DICOM 重建结果", 55, "dicom", callback)
+            return
+        if not (output_dir / "dicom_info.json").exists():
+            await self._set_status_event(task, TaskStatus.RECONSTRUCTING, "缺少 DICOM 元数据，跳过本次重建", 55, "dicom", callback)
             return
 
         process = await asyncio.create_subprocess_exec(

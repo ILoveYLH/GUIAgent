@@ -15,7 +15,7 @@ class VerifyInviteResponse(BaseModel):
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1)
     token: str = Field(min_length=1)
-    history: list[dict] = Field(default_factory=list)
+    conversation_id: str | None = None
 
 
 class ChatEvent(BaseModel):
